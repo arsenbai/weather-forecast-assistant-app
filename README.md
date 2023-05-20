@@ -17,12 +17,14 @@ The backend folder contains the Express server.
 
    ```bash
    npm install
+   ```
 
 ### Launching the Server
 
 To start the Express server, run the following command:
     ```bash
     npm run dev
+    ```
 
 The server will start running on http://localhost:8000.
 
@@ -42,12 +44,14 @@ The client folder contains the Vite application.
 
    ```bash
    npm install
+   ```
 
 ### Launching the Client
 
 To start the Vite development server, run the following command:
     ```bash
     npm run dev
+    ```
 
 The client application will be available at http://localhost:5173/.
 
