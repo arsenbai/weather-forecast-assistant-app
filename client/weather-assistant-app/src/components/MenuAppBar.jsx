@@ -57,7 +57,7 @@ function MenuAppBar( {auth, setAuth} ) {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Photos
+            Weather Forecast Assitant App
           </Typography>
           {auth && (
             <div>
