@@ -35,12 +35,22 @@ const secureRoute = require('./routes/secure-routes');
 
 const app = express();
 
+// Allow requests from a specific origin (replace with your client's URL)
+const corsOptions = {
+  // origin: 'http://localhost:5173'
+  origin: '*'
+};
+
+// Enable CORS with the specified options
+app.use(cors(corsOptions));
+
+
 app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use('/', routes);
 
 app.use(express.json());
-app.use(cors());
+
 
 
 // Plug in the JWT strategy as a middleware so only verified users can access this route.
@@ -98,7 +108,7 @@ async function getAllUsersWithActiveSub() {
 // DISCLAIMER:
 // Для тестирования настроил cron на срабатывание через каждые 5 минут
 
-cron.schedule('*/5 * * * *', async () => {
+cron.schedule('0 * * * *', async () => {
   // create reusable transporter object using the default SMTP transport
   let transporter = nodemailer.createTransport({
       service: 'gmail',
