@@ -202,48 +202,58 @@ cron.schedule('*/5 * * * *', async () => {
         })
       })
 
+      const arrayOfFutureHours = arrRaw.filter(el => (el.category == 'future' || el.category == 'now'));
+      const numberOfFutureHoursLeftToday = arrayOfFutureHours.length;
+      const nextLocalHourMuniteString = arrayOfFutureHours[0]["local_hh_mm"];
+
+
       const arrItWillRain = arrRaw.filter(el => (el.will_it_rain > 0 && (el.category == 'future' || el.category == 'now')));
       const arrRainIsHighlyProbable = arrRaw.filter(el => (el.chance_of_rain > 70 && (el.category == 'future' || el.category == 'now')));
       const arrRainIsProbable = arrRaw.filter(el => (el.chance_of_rain < 71 && el.chance_of_rain > 49 && (el.category == 'future' || el.category == 'now')));
 
 
       let maxChanceOfRain = 0;
-      let conditionText = "";
-      let conditionIcon = "";
+      let weatherConditionText = "";
+      let weatherConditionIcon = "";
       arrRaw.map(item => {
         if (item.chance_of_rain > maxChanceOfRain) {
           maxChanceOfRain = item.chance_of_rain;
-          conditionText = item.condition_text;
-          conditionIcon = item.condition_icon;
+          weatherConditionText = item.condition_text;
+          weatherConditionIcon = item.condition_icon;
         }
       })
 
 
       if (arrItWillRain.length == 0 && arrRainIsProbable.length > 0) {
         
-        messageBodyInHtml = `<div><p>🌦 There is a good chance of rain in ${cityNameFromApi} (${countryNameFromApi}).</p><p>Chance of rain: ${maxChanceOfRain}%</p><p>${conditionText}</p><img src="https:${conditionIcon}" alt="condition-icon"></div><div>${(maxChanceOfRain > 50) ? `☔ We strongly recommend taking an umbrella today. The rain is expected at ${arrRainIsProbable[0]["local_hh_mm"]}`:``}</div>`
+        messageBodyInHtml = `<div><p>🌦 There is a good chance of rain in ${cityNameFromApi} (${countryNameFromApi}).</p><p>Chance of rain: ${maxChanceOfRain}%</p><p>${weatherConditionText}</p><img src="https:${weatherConditionIcon}" alt="condition-icon"></div><div>${(maxChanceOfRain > 50) ? `☔ We strongly recommend taking an umbrella today. The rain is expected at ${arrRainIsProbable[0]["local_hh_mm"]}`:``}</div>`
       
       } else if (arrItWillRain.length > 0) {
 
 
         // CASE: It will certainly rain
-        messageBodyInHtml = `<h1>Weather Assistant App Summary for ${cityNameForURL}</h1><div><p>⛈ Rain is very likely to occur in ${cityNameFromApi} (${countryNameFromApi}).</p><p>Chance of rain: ${maxChanceOfRain}%</p><p>${conditionText}</p><img src="https:${conditionIcon}" alt="condition-icon"></div><div>☔ You will need an umbrella today at ${arrRainIsHighlyProbable[0]["local_hh_mm"]}.</div>`
-      
-        // send mail with defined transport object
-        // let mailOptions = {
-        //   from: 'arsen.baiseupov@gmail.com',
-        //   bcc: emailGroupsByCity[idx],
-        //   subject: `Weather Assistant App Summary for ${cityNameForURL}`,
-        //   html: messageBodyInHtml,
-        // };
+        messageBodyInHtml = `<h1>Weather Assistant App Summary for ${cityNameForURL}</h1><div><p>⛈ Rain is very likely to occur in ${cityNameFromApi} (${countryNameFromApi}).</p><p>Chance of rain: ${maxChanceOfRain}%</p><p>${weatherConditionText}</p><img src="https:${weatherConditionIcon}" alt="condition-icon"></div><div>☔ You will need an umbrella today at ${arrRainIsHighlyProbable[0]["local_hh_mm"]}.</div>`
+        
+        
+        // send mail only 3 times a day if it will certainly rain
+        if (numberOfFutureHoursLeftToday > 2 && (nextLocalHourMuniteString === "08:00" || nextLocalHourMuniteString === "13:00" || nextLocalHourMuniteString === "19:00")) {
+          
+          let mailOptions = {
+            from: 'arsen.baiseupov@gmail.com',
+            bcc: emailGroupsByCity[idx],
+            subject: `Weather Assistant App Summary for ${cityNameForURL}`,
+            html: messageBodyInHtml,
+          };
+  
+          transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+              console.log(error);
+            } else {
+              console.log(`Email sent to subs of <${cityNameForURL}>: ` + info.response);
+            }
+          });
 
-        // transporter.sendMail(mailOptions, function (error, info) {
-        //   if (error) {
-        //     console.log(error);
-        //   } else {
-        //     console.log(`Email sent to subs of <${cityNameForURL}>: ` + info.response);
-        //   }
-        // });
+        }
 
 
 
@@ -251,7 +261,7 @@ cron.schedule('*/5 * * * *', async () => {
         messageBodyInHtml = `<div><p>Rain is not expected in ${cityNameFromApi} (${countryNameFromApi}) today.</p><p>Chance of rain: ${maxChanceOfRain}%</p><p>Current weather: ${arrRaw.filter(el => (el.category == 'future' || el.category == 'now'))[0]["condition_text"]}</p><img src="https:${arrRaw.filter(el => (el.category == 'future' || el.category == 'now'))[0]["condition_icon"]}" alt="condition-icon"></div>`
       } else {
         messageBodyInHtml = `Error in API management.`
-        res.send(messageBodyInHtml)
+        console.log(messageBodyInHtml)
       }
 
       /**
@@ -265,20 +275,26 @@ cron.schedule('*/5 * * * *', async () => {
       */
 
       // send mail with defined transport object
-      let mailOptions = {
-        from: 'arsen.baiseupov@gmail.com',
-        bcc: emailGroupsByCity[idx],
-        subject: `Weather Assistant App Summary for ${cityNameForURL}`,
-        html: messageBodyInHtml,
-      };
 
-      transporter.sendMail(mailOptions, function (error, info) {
-        if (error) {
-          console.log(error);
-        } else {
-          console.log(`Email sent to subs of <${cityNameForURL}>: ` + info.response);
-        }
-      });
+      if (numberOfFutureHoursLeftToday > 2) {
+        
+        // let mailOptions = {
+        //   from: 'arsen.baiseupov@gmail.com',
+        //   bcc: emailGroupsByCity[idx],
+        //   subject: `Weather Assistant App Summary for ${cityNameForURL}`,
+        //   html: messageBodyInHtml,
+        // };
+  
+        // transporter.sendMail(mailOptions, function (error, info) {
+        //   if (error) {
+        //     console.log(error);
+        //   } else {
+        //     console.log(`Email sent to subs of <${cityNameForURL}>: ` + info.response);
+        //   }
+        // });
+
+      }
+
 
       /**
        * To end testing comment the test code and reverse "steps for testing" above.
